@@ -1,0 +1,160 @@
+# ============================================
+# 通用
+# ============================================
+# 编译输出
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+build/
+build-*/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志与临时文件
+*.log
+*.tmp
+*.temp
+
+# Node.js（VarifyServer）
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Claude Code 本地配置
+.claude/settings.local.json
+
+# 配置文件（含敏感信息，请使用同名 .example 模板）
+*.ini
+config.json
+
+# ============================================
+# Qt Creator / qmake
+# ============================================
+# Qt Creator 用户配置
+*.pro.user
+*.pro.user.*
+
+# qmake 生成的中间/产物
+Makefile
+Makefile.*
+.qmake.stash
+*.o
+*.obj
+*.moc
+moc_*.cpp
+moc_*.h
+ui_*.h
+qrc_*.cpp
+*.qrc.depends
+*.d
+*.dll
+*.so
+*.so.*
+*.dylib
+*.a
+*.lib
+*.exe
+*.app
+
+# ============================================
+# Visual Studio
+# ============================================
+# VS 用户 / 解决方案配置
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# 用户特定文件
+*.rsuser
+*.pubxml
+*.pubxml.user
+
+# 构建结果
+x64/
+x86/
+x86_64/
+[Ww][Ii][Nn]32/
+[Ww][Ii][Nn]64/
+[Dd]ebug[Bb]uild/
+[Rr]elease[Bb]uild/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio 缓存 / 数据库
+*.sdf
+*.opensdf
+*.opendb
+*.VC.db
+*.VC.VC.opendb
+*.cachefile
+*.VC.opendb
+
+# Visual Studio 分析器 / 探查器
+*.psscor
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+# Visual Studio 历史 / 追踪
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# 智能感知 / PCH
+ipch/
+*.ipch
+*.aps
+*.ncb
+*.plg
+
+# 其他 VS 生成文件
+*.tlog
+*.lastbuildstate
+*.idb
+*.pdb
+*.ilk
+*.iobj
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.tlh
+*.tli
+*.tmp_proj
+*.vsmeta
+*.vsix
+
+# ============================================
+# CMake（如后续引入）
+# ============================================
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+_deps/
+compile_commands.json
