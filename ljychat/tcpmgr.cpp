@@ -147,6 +147,9 @@ void TcpMgr::initHandlers()
         auto name = jsonObj["name"].toString();
         auto nick = jsonObj["nick"].toString();
         auto icon = jsonObj["icon"].toString();
+
+        if (icon.isEmpty()) icon = ":/res/head_1.jpg";
+
         auto sex = jsonObj["sex"].toInt();
         auto user_info = std::make_shared<UserInfo>(uid, name, nick, icon, sex);
 
@@ -199,10 +202,13 @@ void TcpMgr::initHandlers()
         }
 
 
+        QString s_icon = jsonObj["icon"].toString();
+        if (s_icon.isEmpty()) s_icon = ":/res/head_1.jpg";
+
         auto search_info = std::make_shared<SearchInfo>(jsonObj["uid"].toInt(),
                                                         jsonObj["name"].toString(),jsonObj["nick"].toString(),
-                                                        jsonObj["desc"].toString(),jsonObj["sex"].toInt(),
-                                                        jsonObj["icon"].toString());
+                                                        jsonObj["desc"].toString(),jsonObj["sex"].toInt()
+                                                        ,s_icon);
 
         emit sig_user_search(search_info);
 
@@ -312,6 +318,9 @@ void TcpMgr::initHandlers()
         QString name = jsonObj["name"].toString();
         QString nick = jsonObj["nick"].toString();
         QString icon = jsonObj["icon"].toString();
+
+        if (icon.isEmpty()) icon = ":/res/head_1.jpg";
+
         int sex = jsonObj["sex"].toInt();
 
         auto auth_info = std::make_shared<AuthInfo>(from_uid,name,
@@ -350,6 +359,9 @@ void TcpMgr::initHandlers()
         auto name = jsonObj["name"].toString();
         auto nick = jsonObj["nick"].toString();
         auto icon = jsonObj["icon"].toString();
+
+        if (icon.isEmpty()) icon = ":/res/head_1.jpg";
+
         auto sex = jsonObj["sex"].toInt();
         auto uid = jsonObj["uid"].toInt();
         auto rsp = std::make_shared<AuthRsp>(uid, name, nick, icon, sex);

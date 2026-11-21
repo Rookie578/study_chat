@@ -53,6 +53,9 @@ void UserMgr::AppendApplyList(QJsonArray array)
         auto name = value["name"].toString();
         auto desc = value["desc"].toString();
         auto icon = value["icon"].toString();
+
+        if (icon.isEmpty()) icon = ":/res/head_1.jpg";
+
         auto nick = value["nick"].toString();
         auto sex = value["sex"].toInt();
         auto uid = value["uid"].toInt();
@@ -70,6 +73,9 @@ void UserMgr::AppendFriendList(QJsonArray array)
         auto name = value["name"].toString();
         auto desc = value["desc"].toString();
         auto icon = value["icon"].toString();
+
+        if (icon.isEmpty()) icon = ":/res/head_1.jpg";
+
         auto nick = value["nick"].toString();
         auto sex = value["sex"].toInt();
         auto uid = value["uid"].toInt();
