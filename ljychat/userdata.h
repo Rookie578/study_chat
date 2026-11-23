@@ -165,13 +165,14 @@ struct UserInfo {
 
 struct TextChatData{
     TextChatData(QString msg_id, QString msg_content, int fromuid, int touid)
-        :_msg_id(msg_id),_msg_content(msg_content),_from_uid(fromuid),_to_uid(touid){
+        :_msg_id(msg_id),_msg_content(msg_content),_from_uid(fromuid),_to_uid(touid),_status(0){
 
     }
     QString _msg_id;
     QString _msg_content;
     int _from_uid;
     int _to_uid;
+    int _status;   // 0未确认 1已发送 2已送达 3已读 4失败
 };
 
 struct TextChatMsg{

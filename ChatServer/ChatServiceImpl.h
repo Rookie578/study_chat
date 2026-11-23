@@ -19,6 +19,8 @@ using message::ChatService;
 using message::TextChatMsgReq;
 using message::TextChatMsgRsp;
 using message::TextChatData;
+using message::ReceiptReq;
+using message::ReceiptRsp;
 
 //final 写在类名后 表示这个类（ChatServiceImpl）不允许被继承。
 class ChatServiceImpl final : public ChatService::Service
@@ -33,6 +35,9 @@ public:
 
 	Status NotifyTextChatMsg(::grpc::ServerContext* context,
 		const TextChatMsgReq* request, TextChatMsgRsp* reply) override;
+
+	Status NotifyReceipt(::grpc::ServerContext* context,
+		const ReceiptReq* request, ReceiptRsp* reply) override;
 
 	bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& userinfo);
 

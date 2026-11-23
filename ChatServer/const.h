@@ -15,6 +15,7 @@ enum ErrorCodes {
 	PasswdInvalid = 1009,   //密码更新失败
 	TokenInvalid = 1010,   //Token失效
 	UidInvalid = 1011,  //uid无效
+	MysqlFailed = 1012, //database operation failed
 };
 
 
@@ -59,6 +60,12 @@ enum MSG_IDS {
 	ID_TEXT_CHAT_MSG_REQ = 1017, //文本聊天信息请求
 	ID_TEXT_CHAT_MSG_RSP = 1018, //文本聊天信息回复
 	ID_NOTIFY_TEXT_CHAT_MSG_REQ = 1019, //通知用户文本聊天信息
+	ID_HEARTBEAT_REQ = 1020, // app heartbeat request
+	ID_HEARTBEAT_RSP = 1021, // app heartbeat response
+	ID_TEXT_CHAT_MSG_DELIVERED_REQ = 1022, // recipient -> server: delivered ack
+	ID_NOTIFY_TEXT_CHAT_MSG_DELIVERED = 1023, // server -> sender: delivered
+	ID_TEXT_CHAT_MSG_READ_REQ = 1024, // recipient -> server: read ack
+	ID_NOTIFY_TEXT_CHAT_MSG_READ = 1025, // server -> sender: read
 };
 
 #define USERIPPREFIX  "uip_"
@@ -67,3 +74,4 @@ enum MSG_IDS {
 #define USER_BASE_INFO "ubaseinfo_"
 #define LOGIN_COUNT  "logincount"
 #define NAME_INFO  "nameinfo_"
+#define USERIP_TTL 60

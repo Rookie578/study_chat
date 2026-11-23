@@ -112,10 +112,25 @@ message TextChatMsgRsp {
 	repeated TextChatData textmsgs = 4;
 }
 
+message ReceiptReq {
+	int32 fromuid = 1;   // original sender uid
+	int32 touid = 2;     // recipient uid (ack sender)
+	repeated string msgids = 3;
+	int32 status = 4;    // 2 delivered, 3 read
+	bool all = 5;
+}
+
+message ReceiptRsp {
+	int32 error = 1;
+	int32 fromuid = 2;
+	int32 touid = 3;
+}
+
 service ChatService {
 	rpc NotifyAddFriend(AddFriendReq) returns (AddFriendRsp) {}
 	rpc RplyAddFriend(RplyFriendReq) returns (RplyFriendRsp) {}
 	rpc SendChatMsg(SendChatMsgReq) returns (SendChatMsgRsp) {}
 	rpc NotifyAuthFriend(AuthFriendReq) returns (AuthFriendRsp) {}
 	rpc NotifyTextChatMsg(TextChatMsgReq) returns (TextChatMsgRsp){}
+	rpc NotifyReceipt(ReceiptReq) returns (ReceiptRsp){}
 }

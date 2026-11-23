@@ -32,6 +32,11 @@ private:
 	void AuthFriendApply(std::shared_ptr<CSession> session, const short& msg_id, const string& msg_data);
 
 	void DealChatTextMsg(std::shared_ptr<CSession> session, const short& msg_id, const string& msg_data);
+	void HeartbeatHandler(shared_ptr<CSession>, const short& msg_id, const string& msg_data);
+
+	void HandleDeliveredAck(shared_ptr<CSession>, const short& msg_id, const string& msg_data);
+	void HandleReadAck(shared_ptr<CSession>, const short& msg_id, const string& msg_data);
+	void HandleReceipt(shared_ptr<CSession>, const string& msg_data, int target_status);
 
 	void SearchInfo(shared_ptr<CSession>, const short& msg_id, const string& msg_data);
 	bool GetBaseInfo(std::string base_key, int uid, std::shared_ptr<UserInfo>& userinfo);

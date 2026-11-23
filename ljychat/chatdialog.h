@@ -9,6 +9,8 @@
 #include "userdata.h"
 #include <QListWidgetItem>
 
+#include <QStringList>
+
 namespace Ui {
 class ChatDialog;
 }
@@ -53,6 +55,9 @@ private:
 
     void UpdateChatMsg(std::vector<std::shared_ptr<TextChatData>> msgdata);
 
+    void AckIncomingMsg(std::shared_ptr<TextChatMsg> msg);
+    void SendReadAll(int peer_uid);
+
 private slots:
     void slot_loading_chat_user();
 
@@ -62,6 +67,8 @@ private slots:
     void slot_text_changed(const QString & str);
 
     void slot_loading_contact_user();
+
+    void slot_msg_status(int status, QStringList msgids, bool all, int peer_uid);
 
 public slots:
     void slot_apply_friend(std::shared_ptr<AddFriendApply> apply);

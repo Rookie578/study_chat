@@ -20,6 +20,13 @@ ChatItemBase::ChatItemBase(ChatRole role, QWidget *parent):QWidget(parent),m_rol
 
     m_pBubble       = new QWidget();
 
+    m_pStatusLabel = new QLabel();
+    m_pStatusLabel->setObjectName("chat_status");
+    m_pStatusLabel->setStyleSheet("color: gray; font-size: 10px;");
+    m_pStatusLabel->setContentsMargins(0,0,8,0);
+    m_pStatusLabel->setAlignment(Qt::AlignRight);
+    m_pStatusLabel->hide();
+
     //网格
     QGridLayout *pGLayout = new QGridLayout();
     pGLayout->setVerticalSpacing(3); //控件间的垂直间距
@@ -38,6 +45,8 @@ ChatItemBase::ChatItemBase(ChatRole role, QWidget *parent):QWidget(parent),m_rol
         pGLayout->addWidget(m_pIconLabel, 0, 2, 2,1, Qt::AlignTop);
         pGLayout->addItem(pSpacer, 1, 0, 1, 1);
         pGLayout->addWidget(m_pBubble, 1,1, 1,1);
+
+        pGLayout->addWidget(m_pStatusLabel, 2, 1, 1, 1, Qt::AlignRight);
 
         pGLayout->setColumnStretch(0, 2);
         pGLayout->setColumnStretch(1, 3);
@@ -74,6 +83,11 @@ void ChatItemBase::setWidget(QWidget *w)
     m_pBubble = w;
 }
 
+void ChatItemBase::setStatus(const QString &text)
+{
+    m_pStatusLabel->setText(text);
+    m_pStatusLabel->setVisible(!text.isEmpty());
+}
 
 
 

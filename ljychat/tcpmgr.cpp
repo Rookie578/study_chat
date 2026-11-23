@@ -13,6 +13,8 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
         qDebug() << "Connected to server!";
         // 连接建立后发送消息
         emit sig_con_success(true);
+
+        _heartbeat_timer.start();
     });
 
     QObject::connect(&_socket, &QTcpSocket::readyRead, [&]() {
@@ -97,9 +99,22 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
     // 处理连接断开
     QObject::connect(&_socket, &QTcpSocket::disconnected, [&]() {
         qDebug() << "Disconnected from server.";
+
+        _heartbeat_timer.stop();
     });
     //连接发送信号用来发送数据
     QObject::connect(this, &TcpMgr::sig_send_data, this, &TcpMgr::slot_send_data);
+
+    // 应用层心跳：服务端据此续期在线路由 TTL（服务端 TTL=60s，心跳 20s）
+    _heartbeat_timer.setInterval(20000);
+    QObject::connect(&_heartbeat_timer, &QTimer::timeout, [this]() {
+        if (_socket.state() != QAbstractSocket::ConnectedState) {
+            return;
+        }
+        QJsonObject root;
+        emit sig_send_data(ID_HEARTBEAT_REQ, QJsonDocument(root).toJson());
+    });
+
 
     //注册消息
     initHandlers();
@@ -392,14 +407,21 @@ void TcpMgr::initHandlers()
             return;
         }
 
+        QStringList ids;
+        for (auto v : jsonObj["text_array"].toArray()) {
+            ids << v.toObject()["msgid"].toString();
+        }
+        int peer_uid = jsonObj["touid"].toInt();
+
         int err = jsonObj["error"].toInt();
         if (err != ErrorCodes::SUCCESS) {
             qDebug() << "Chat Msg Rsp Failed, err is " << err;
+            emit sig_msg_status(4, ids, false, peer_uid);
             return;
         }
 
         qDebug() << "Receive Text Chat Rsp Success " ;
-        //ui设置送达等标记 todo...
+        emit sig_msg_status(1, ids, false, peer_uid);
     });
 
     _handlers.insert(ID_NOTIFY_TEXT_CHAT_MSG_REQ, [this](ReqId id, int len, QByteArray data) {
@@ -432,6 +454,36 @@ void TcpMgr::initHandlers()
         auto msg_ptr = std::make_shared<TextChatMsg>(jsonObj["fromuid"].toInt(),
                                                      jsonObj["touid"].toInt(),jsonObj["text_array"].toArray());
         emit sig_text_chat_msg(msg_ptr);
+    });
+
+    _handlers.insert(ID_NOTIFY_TEXT_CHAT_MSG_DELIVERED, [this](ReqId id, int len, QByteArray data) {
+        Q_UNUSED(id);
+        Q_UNUSED(len);
+        QJsonObject jsonObj = QJsonDocument::fromJson(data).object();
+        QStringList ids;
+        for (auto v : jsonObj["msgids"].toArray()) {
+            ids << v.toString();
+        }
+        emit sig_msg_status(2, ids, jsonObj["all"].toBool(), jsonObj["touid"].toInt());
+    });
+
+    _handlers.insert(ID_NOTIFY_TEXT_CHAT_MSG_READ, [this](ReqId id, int len, QByteArray data) {
+        Q_UNUSED(id);
+        Q_UNUSED(len);
+        QJsonObject jsonObj = QJsonDocument::fromJson(data).object();
+        QStringList ids;
+        for (auto v : jsonObj["msgids"].toArray()) {
+            ids << v.toString();
+        }
+        emit sig_msg_status(3, ids, jsonObj["all"].toBool(), jsonObj["touid"].toInt());
+    });
+
+
+    _handlers.insert(ID_HEARTBEAT_RSP, [this](ReqId id, int len, QByteArray data) {
+        Q_UNUSED(id);
+        Q_UNUSED(len);
+        Q_UNUSED(data);
+        qDebug() << "heartbeat ack";
     });
 
 

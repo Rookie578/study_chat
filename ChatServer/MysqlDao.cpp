@@ -466,3 +466,106 @@ bool MysqlDao::GetFriendList(int self_id, std::vector<std::shared_ptr<UserInfo>>
 	return true;
 }
 
+
+
+bool MysqlDao::SaveChatMessages(int from_uid, int to_uid, const std::vector<ChatMessageInfo>& msgs)
+{
+	if (msgs.empty()) {
+		return false;
+	}
+	auto con = pool_->getConnection();
+	if (con == nullptr) {
+		return false;
+	}
+
+	try {
+		con->_con->setAutoCommit(false);
+		std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement(
+			"INSERT INTO chat_message(msg_id, from_uid, to_uid, content, status) "
+			"VALUES(?, ?, ?, ?, 1) ON DUPLICATE KEY UPDATE msg_id = msg_id"));
+		for (const auto& msg : msgs) {
+			pstmt->setString(1, msg._msg_id);
+			pstmt->setInt(2, from_uid);
+			pstmt->setInt(3, to_uid);
+			pstmt->setString(4, msg._content);
+			pstmt->executeUpdate();
+		}
+		con->_con->commit();
+		con->_con->setAutoCommit(true);
+		pool_->returnConnection(std::move(con));
+		return true;
+	}
+	catch (sql::SQLException& e) {
+		try {
+			con->_con->rollback();
+			con->_con->setAutoCommit(true);
+		}
+		catch (...) {
+		}
+		std::cerr << "SaveChatMessages SQLException: " << e.what() << std::endl;
+		pool_->returnConnection(std::move(con));
+		return false;
+	}
+}
+
+bool MysqlDao::MarkChatMessages(int to_uid, int from_uid, const std::vector<std::string>& msg_ids, int status, bool all)
+{
+	if (status != 2 && status != 3) {
+		return false;
+	}
+	if (!all && msg_ids.empty()) {
+		return false;
+	}
+	auto con = pool_->getConnection();
+	if (con == nullptr) {
+		return false;
+	}
+
+	try {
+		std::unique_ptr<sql::PreparedStatement> pstmt;
+		if (status == 2) {
+			if (all) {
+				pstmt.reset(con->_con->prepareStatement(
+					"UPDATE chat_message SET status = 2, delivered_at = NOW() "
+					"WHERE to_uid = ? AND from_uid = ? AND status < 2"));
+				pstmt->setInt(1, to_uid);
+				pstmt->setInt(2, from_uid);
+				pstmt->executeUpdate();
+				pool_->returnConnection(std::move(con));
+				return true;
+			}
+			pstmt.reset(con->_con->prepareStatement(
+				"UPDATE chat_message SET status = 2, delivered_at = NOW() "
+				"WHERE msg_id = ? AND to_uid = ? AND from_uid = ? AND status < 2"));
+		}
+		else {
+			if (all) {
+				pstmt.reset(con->_con->prepareStatement(
+					"UPDATE chat_message SET status = 3, delivered_at = COALESCE(delivered_at, NOW()), read_at = NOW() "
+					"WHERE to_uid = ? AND from_uid = ? AND status < 3"));
+				pstmt->setInt(1, to_uid);
+				pstmt->setInt(2, from_uid);
+				pstmt->executeUpdate();
+				pool_->returnConnection(std::move(con));
+				return true;
+			}
+			pstmt.reset(con->_con->prepareStatement(
+				"UPDATE chat_message SET status = 3, delivered_at = COALESCE(delivered_at, NOW()), read_at = NOW() "
+				"WHERE msg_id = ? AND to_uid = ? AND from_uid = ? AND status < 3"));
+		}
+
+		for (const auto& msg_id : msg_ids) {
+			pstmt->setString(1, msg_id);
+			pstmt->setInt(2, to_uid);
+			pstmt->setInt(3, from_uid);
+			pstmt->executeUpdate();
+		}
+		pool_->returnConnection(std::move(con));
+		return true;
+	}
+	catch (sql::SQLException& e) {
+		std::cerr << "MarkChatMessages SQLException: " << e.what() << std::endl;
+		pool_->returnConnection(std::move(con));
+		return false;
+	}
+}

@@ -3,12 +3,16 @@
 
 #include <QTcpSocket>
 
+#include <QTimer>
+
 #include "singleton.h"
 #include "global.h"
 #include <functional>
 #include <QObject>
 
 #include "userdata.h"
+
+#include <QStringList>
 
 /*
  TCP 网络通信管理器
@@ -29,6 +33,9 @@ private:
     void initHandlers();
     void handleMsg(ReqId id,int len,QByteArray data);
     QTcpSocket _socket;
+
+    QTimer _heartbeat_timer;
+
     QString _host;
     uint16_t _port;
     QByteArray _buffer;
@@ -52,6 +59,8 @@ signals:
     void sig_auth_rsp(std::shared_ptr<AuthRsp>);
 
     void sig_text_chat_msg(std::shared_ptr<TextChatMsg> msg);
+
+    void sig_msg_status(int status, QStringList msgids, bool all, int peer_uid);
 };
 
 #endif // TCPMGR_H

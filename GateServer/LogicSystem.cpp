@@ -140,9 +140,7 @@ LogicSystem::LogicSystem()
         root["email"] = email;
         root["uid"] = uid;
         root["user"] = name;
-        root["passwd"] = pwd;
-        root["confirm"] = confirm;
-        root["varifycode"] = src_root["varifycode"].asString();
+        
         std::string jsonstr = root.toStyledString();
         beast::ostream(connection->_response.body()) << jsonstr;
         return true;
@@ -208,12 +206,10 @@ LogicSystem::LogicSystem()
             return true;
         }
 
-        std::cout << "succeed to update password" << pwd << std::endl;
+        std::cout << "succeed to update password" << std::endl;
         root["error"] = 0;
         root["email"] = email;
         root["user"] = name;
-        root["passwd"] = pwd;
-        root["varifycode"] = src_root["varifycode"].asString();
         std::string jsonstr = root.toStyledString();
         beast::ostream(connection->_response.body()) << jsonstr;
         return true;

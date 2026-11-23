@@ -157,6 +157,9 @@ public:
 	bool GetApplyList(int touid, std::vector<std::shared_ptr<ApplyInfo>>& applyList, int begin, int limit);
 
 	bool GetFriendList(int self_id, std::vector<std::shared_ptr<UserInfo>>& user_info_list);
+
+	bool SaveChatMessages(int from_uid, int to_uid, const std::vector<ChatMessageInfo>& msgs);
+	bool MarkChatMessages(int to_uid, int from_uid, const std::vector<std::string>& msg_ids, int status, bool all);
 private:
 	std::unique_ptr<MySqlPool> pool_;
 };

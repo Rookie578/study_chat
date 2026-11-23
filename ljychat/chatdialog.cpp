@@ -14,6 +14,10 @@
 
 #include "conuseritem.h"
 
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+
 ChatDialog::ChatDialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::ChatDialog),_mode(ChatUIMode::ChatMode),_state(ChatUIMode::ChatMode),_b_loading(false),_cur_chat_uid(0),_last_widget(nullptr)
@@ -141,6 +145,10 @@ ChatDialog::ChatDialog(QWidget *parent)
     //连接对端消息通知
     connect(TcpMgr::GetInstance().get(), &TcpMgr::sig_text_chat_msg,
             this, &ChatDialog::slot_text_chat_msg);
+
+    // 连接回执状态信号（已发送/已送达/已读）
+    connect(TcpMgr::GetInstance().get(), &TcpMgr::sig_msg_status,
+            this, &ChatDialog::slot_msg_status);
 
 }
 
@@ -524,6 +532,9 @@ void ChatDialog::slot_item_clicked(QListWidgetItem *item)
         //跳转到聊天界面
         ui->chat_page->SetUserInfo(user_info);
         _cur_chat_uid = user_info->_uid;
+
+        SendReadAll(user_info->_uid);
+
         return;
     }
 }
@@ -586,6 +597,9 @@ void ChatDialog::slot_text_chat_msg(std::shared_ptr<TextChatMsg> msg)
         //更新当前聊天页面记录
         UpdateChatMsg(msg->_chat_msgs);
         UserMgr::GetInstance()->AppendFriendChatMsg(msg->_from_uid,msg->_chat_msgs);
+
+        AckIncomingMsg(msg);
+
         return;
     }
 
@@ -603,6 +617,8 @@ void ChatDialog::slot_text_chat_msg(std::shared_ptr<TextChatMsg> msg)
     ui->chat_user_list->insertItem(0, item);
     ui->chat_user_list->setItemWidget(item, chat_user_wid);
     _chat_items_added.insert(msg->_from_uid, item);
+
+    AckIncomingMsg(msg);
 }
 
 void ChatDialog::SetSelectChatPage(int uid)
@@ -659,6 +675,8 @@ void ChatDialog::SetSelectChatPage(int uid)
         //设置信息
         auto user_info = con_item->GetUserInfo();
         ui->chat_page->SetUserInfo(user_info);
+
+        SendReadAll(uid);
 
         return;
     }
@@ -754,4 +772,72 @@ void ChatDialog::slot_jump_chat_item(std::shared_ptr<SearchInfo> si)
     //更新聊天界面信息
     SetSelectChatPage(si->_uid);
     slot_side_chat();
+}
+
+void ChatDialog::AckIncomingMsg(std::shared_ptr<TextChatMsg> msg)
+{
+    auto self = UserMgr::GetInstance()->GetUserInfo();
+    if (!self) {
+        return;
+    }
+
+    QJsonArray ids;
+    for (auto& item : msg->_chat_msgs) {
+        ids.append(item->_msg_id);
+    }
+
+    QJsonObject ack;
+    ack["fromuid"] = self->_uid;
+    ack["touid"] = msg->_from_uid;
+    ack["msgids"] = ids;
+    emit TcpMgr::GetInstance()->sig_send_data(ID_TEXT_CHAT_MSG_DELIVERED_REQ,
+                                              QJsonDocument(ack).toJson(QJsonDocument::Compact));
+
+    // 当前正在看这个会话，直接补一个已读回执
+    if (_cur_chat_uid == msg->_from_uid) {
+        QJsonObject read;
+        read["fromuid"] = self->_uid;
+        read["touid"] = msg->_from_uid;
+        read["msgids"] = ids;
+        emit TcpMgr::GetInstance()->sig_send_data(ID_TEXT_CHAT_MSG_READ_REQ,
+                                                  QJsonDocument(read).toJson(QJsonDocument::Compact));
+    }
+}
+
+void ChatDialog::SendReadAll(int peer_uid)
+{
+    auto self = UserMgr::GetInstance()->GetUserInfo();
+    if (!self || peer_uid <= 0) {
+        return;
+    }
+
+    // 打开会话：把对方发给我的历史消息全部标记已读
+    QJsonObject read;
+    read["fromuid"] = self->_uid;
+    read["touid"] = peer_uid;
+    read["all"] = true;
+    emit TcpMgr::GetInstance()->sig_send_data(ID_TEXT_CHAT_MSG_READ_REQ,
+                                              QJsonDocument(read).toJson(QJsonDocument::Compact));
+}
+
+void ChatDialog::slot_msg_status(int status, QStringList msgids, bool all, int peer_uid)
+{
+    if (peer_uid <= 0) {
+        return;
+    }
+
+    // 先更新内存里的历史记录，切换会话后重新渲染也能看到状态
+    UserMgr::GetInstance()->UpdateChatMsgStatus(peer_uid, msgids, status, all);
+
+    // 只有当前正在看这个会话，才更新气泡
+    if (_cur_chat_uid != peer_uid) {
+        return;
+    }
+
+    if (all) {
+        ui->chat_page->UpdateAllMsgStatus(status);
+    }
+    else {
+        ui->chat_page->UpdateMsgStatus(msgids, status);
+    }
 }

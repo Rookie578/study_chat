@@ -135,14 +135,14 @@ bool ChatServiceImpl::GetBaseInfo(std::string base_key, int uid, std::shared_ptr
 		reader.parse(info_str, root);
 		userinfo->uid = root["uid"].asInt();
 		userinfo->name = root["name"].asString();
-		userinfo->pwd = root["pwd"].asString();
+		
 		userinfo->email = root["email"].asString();
 		userinfo->nick = root["nick"].asString();
 		userinfo->desc = root["desc"].asString();
 		userinfo->sex = root["sex"].asInt();
 		userinfo->icon = root["icon"].asString();
 		std::cout << "user login uid is  " << userinfo->uid << " name  is "
-			<< userinfo->name << " pwd is " << userinfo->pwd << " email is " << userinfo->email << endl;
+			<< userinfo->name << " email is " << userinfo->email << endl;
 	}
 	else {
 		
@@ -158,7 +158,7 @@ bool ChatServiceImpl::GetBaseInfo(std::string base_key, int uid, std::shared_ptr
 		
 		Json::Value redis_root;
 		redis_root["uid"] = uid;
-		redis_root["pwd"] = userinfo->pwd;
+		
 		redis_root["name"] = userinfo->name;
 		redis_root["email"] = userinfo->email;
 		redis_root["nick"] = userinfo->nick;
@@ -171,3 +171,31 @@ bool ChatServiceImpl::GetBaseInfo(std::string base_key, int uid, std::shared_ptr
 	return true;
 }
 
+
+
+Status ChatServiceImpl::NotifyReceipt(ServerContext* context, const ReceiptReq* request, ReceiptRsp* reply) {
+	reply->set_error(ErrorCodes::Success);
+	reply->set_fromuid(request->fromuid());
+	reply->set_touid(request->touid());
+
+	// request->fromuid() is the original sender (on this node).
+	auto session = UserMgr::GetInstance()->GetSession(request->fromuid());
+	if (session == nullptr) {
+		return Status::OK;
+	}
+
+	Json::Value rtvalue;
+	rtvalue["error"] = ErrorCodes::Success;
+	rtvalue["fromuid"] = request->fromuid();
+	rtvalue["touid"] = request->touid();
+	rtvalue["all"] = request->all();
+	Json::Value ids(Json::arrayValue);
+	for (const auto& id : request->msgids()) {
+		ids.append(id);
+	}
+	rtvalue["msgids"] = ids;
+
+	int notify_id = (request->status() == 3) ? ID_NOTIFY_TEXT_CHAT_MSG_READ : ID_NOTIFY_TEXT_CHAT_MSG_DELIVERED;
+	session->Send(rtvalue.toStyledString(), notify_id);
+	return Status::OK;
+}

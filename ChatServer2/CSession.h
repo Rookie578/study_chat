@@ -7,6 +7,7 @@
 #include <boost/asio.hpp>
 #include <queue>
 #include <mutex>
+#include <atomic>
 #include <memory>
 #include "const.h"
 #include "MsgNode.h"
@@ -62,7 +63,7 @@ private:
 	//收到的头部结构
 	std::shared_ptr<MsgNode> _recv_head_node;
 
-	int _user_uid;
+	std::atomic<int> _user_uid;
 
 };
 

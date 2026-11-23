@@ -99,14 +99,14 @@ bool ChatGrpcClient::GetBaseInfo(std::string base_key, int uid, std::shared_ptr<
 		reader.parse(info_str, root);
 		userinfo->uid = root["uid"].asInt();
 		userinfo->name = root["name"].asString();
-		userinfo->pwd = root["pwd"].asString();
+		
 		userinfo->email = root["email"].asString();
 		userinfo->nick = root["nick"].asString();
 		userinfo->desc = root["desc"].asString();
 		userinfo->sex = root["sex"].asInt();
 		userinfo->icon = root["icon"].asString();
 		std::cout << "user login uid is  " << userinfo->uid << " name  is "
-			<< userinfo->name << " pwd is " << userinfo->pwd << " email is " << userinfo->email << endl;
+			<< userinfo->name << " email is " << userinfo->email << endl;
 	}
 	else {
 		//redis中没有，则去查mysql
@@ -122,7 +122,7 @@ bool ChatGrpcClient::GetBaseInfo(std::string base_key, int uid, std::shared_ptr<
 		//将数据库内容写入redis缓存
 		Json::Value redis_root;
 		redis_root["uid"] = uid;
-		redis_root["pwd"] = userinfo->pwd;
+		
 		redis_root["name"] = userinfo->name;
 		redis_root["email"] = userinfo->email;
 		redis_root["nick"] = userinfo->nick;
@@ -159,6 +159,34 @@ TextChatMsgRsp ChatGrpcClient::NotifyTextChatMsg(std::string server_ip, const Te
 	ClientContext context;
 	auto stub = pool->getConnection();
 	Status status = stub->NotifyTextChatMsg(&context, req, &rsp);
+	Defer defercon([&stub, this, &pool]() {
+		pool->returnConnection(std::move(stub));
+		});
+
+	if (!status.ok()) {
+		rsp.set_error(ErrorCodes::RPCFailed);
+		return rsp;
+	}
+
+	return rsp;
+}
+
+ReceiptRsp ChatGrpcClient::NotifyReceipt(std::string server_ip, const ReceiptReq& req) {
+	ReceiptRsp rsp;
+	rsp.set_error(ErrorCodes::Success);
+	rsp.set_fromuid(req.fromuid());
+	rsp.set_touid(req.touid());
+
+	auto find_iter = _pools.find(server_ip);
+	if (find_iter == _pools.end()) {
+		rsp.set_error(ErrorCodes::RPCFailed);
+		return rsp;
+	}
+
+	auto& pool = find_iter->second;
+	ClientContext context;
+	auto stub = pool->getConnection();
+	Status status = stub->NotifyReceipt(&context, req, &rsp);
 	Defer defercon([&stub, this, &pool]() {
 		pool->returnConnection(std::move(stub));
 		});

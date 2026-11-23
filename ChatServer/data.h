@@ -27,3 +27,10 @@ struct ApplyInfo {
 	int _sex;
 	int _status;
 };
+
+struct ChatMessageInfo {
+	ChatMessageInfo(const std::string& msg_id, const std::string& content)
+		: _msg_id(msg_id), _content(content) {}
+	std::string _msg_id;
+	std::string _content;
+};

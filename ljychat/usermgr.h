@@ -46,6 +46,8 @@ public:
     std::shared_ptr<UserInfo> GetUserInfo();
 
     void AppendFriendChatMsg(int friend_id,std::vector<std::shared_ptr<TextChatData>>);
+
+    void UpdateChatMsgStatus(int friend_id, const QStringList& msgids, int status, bool all);
 private:
     UserMgr();
 

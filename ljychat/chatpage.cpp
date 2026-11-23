@@ -13,6 +13,17 @@
 #include <QJsonDocument>
 #include "tcpmgr.h"
 
+static QString ChatStatusText(int status)
+{
+    switch (status) {
+    case 1: return QStringLiteral("已发送");
+    case 2: return QStringLiteral("已送达");
+    case 3: return QStringLiteral("已读");
+    case 4: return QStringLiteral("发送失败");
+    default: return QString();
+    }
+}
+
 
 ChatPage::ChatPage(QWidget *parent)
     : QWidget(parent)
@@ -36,6 +47,8 @@ ChatPage::~ChatPage()
 
 void ChatPage::SetUserInfo(std::shared_ptr<UserInfo> user_info)
 {
+    _msg_items.clear();
+
     _user_info = user_info;
     //设置ui界面
     ui->title_lb->setText(_user_info->_name);
@@ -60,6 +73,9 @@ void ChatPage::AppendChatMsg(std::shared_ptr<TextChatData> msg)
         pBubble = new TextBubble(role, msg->_msg_content);
         pChatItem->setWidget(pBubble);
         ui->chat_data_list->appendChatItem(pChatItem);
+
+        pChatItem->setStatus(ChatStatusText(msg->_status));
+        _msg_items[msg->_msg_id] = pChatItem;
     }
     else {
         role = ChatRole::Other;
@@ -139,8 +155,10 @@ void ChatPage::on_send_btn_clicked()
                 emit TcpMgr::GetInstance()->sig_send_data(ReqId::ID_TEXT_CHAT_MSG_REQ, jsonData);
             }
 
-            //将bubble和uid绑定，以后可以等网络返回消息后设置是否送达
-            //_bubble_map[uuidString] = pBubble;
+            pChatItem->setStatus(QString());
+            _msg_items[uuidString] = pChatItem;
+
+
             txt_size += msgList[i].content.length();
             QJsonObject obj;
             QByteArray utf8Message = msgList[i].content.toUtf8();
@@ -185,5 +203,22 @@ void ChatPage::on_send_btn_clicked()
 
 
 
+}
+
+void ChatPage::UpdateMsgStatus(const QStringList& msgids, int status)
+{
+    for (const auto& id : msgids) {
+        auto find_iter = _msg_items.find(id);
+        if (find_iter != _msg_items.end()) {
+            find_iter.value()->setStatus(ChatStatusText(status));
+        }
+    }
+}
+
+void ChatPage::UpdateAllMsgStatus(int status)
+{
+    for (auto item : _msg_items) {
+        item->setStatus(ChatStatusText(status));
+    }
 }
 

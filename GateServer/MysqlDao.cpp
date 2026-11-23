@@ -1,6 +1,8 @@
 #include "MysqlDao.h"
 #include "ConfigMgr.h"
 
+#include "PasswordHash.h"
+
 MysqlDao::MysqlDao()
 {
     auto& cfg = ConfigMgr::Inst();
@@ -30,7 +32,13 @@ int MysqlDao::RegUser(const std::string& name, const std::string& email, const s
         // 设置输入参数
         stmt->setString(1, name);
         stmt->setString(2, email);
-        stmt->setString(3, pwd);
+        std::string hashed_pwd = PasswordHash::HashPassword(pwd);
+        if (hashed_pwd.empty()) {
+            std::cerr << "hash password failed" << std::endl;
+            pool_->returnConnection(std::move(con));
+            return -1;
+        }
+        stmt->setString(3, hashed_pwd);
 
         // 由于PreparedStatement不直接支持注册输出参数，我们需要使用会话变量或其他方法来获取输出参数的值
 
@@ -109,7 +117,12 @@ bool MysqlDao::UpdatePwd(const std::string& name, const std::string& newpwd) {
 
         // 绑定参数
         pstmt->setString(2, name);
-        pstmt->setString(1, newpwd);
+        std::string hashed = PasswordHash::HashPassword(newpwd);
+        if (hashed.empty()) {
+            pool_->returnConnection(std::move(con));
+            return false;
+        }
+        pstmt->setString(1, hashed);
 
         // 执行更新
         int updateCount = pstmt->executeUpdate();
@@ -146,22 +159,51 @@ bool MysqlDao::CheckPwd(const std::string& email, const std::string& pwd, UserIn
 
         // 执行查询
         std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
-        std::string origin_pwd = "";
-        // 遍历结果集
-        while (res->next()) {
+        std::string origin_pwd, row_name, row_email;
+        int row_uid = 0;
+        if (res->next()) {
             origin_pwd = res->getString("pwd");
-            // 输出查询到的密码
-            std::cout << "Password: " << origin_pwd << std::endl;
-            break;
+            row_name = res->getString("name");
+            row_email = res->getString("email");
+            row_uid = res->getInt("uid");
+        }
+        // 先把结果集放掉，再执行 UPDATE，避免 MySQL 报 commands out of sync
+        res.reset();
+
+        if (origin_pwd.empty()) {
+            return false;                 // 邮箱不存在
         }
 
-        if (pwd != origin_pwd) {
-            return false;
+        if (PasswordHash::IsHashed(origin_pwd)) {
+            if (!PasswordHash::VerifyPassword(pwd, origin_pwd)) {
+                return false;
+            }
         }
-        userInfo.name = res->getString("name");
-        userInfo.email = res->getString("email");
-        userInfo.uid = res->getInt("uid");
-        userInfo.pwd = origin_pwd;
+        else {
+            // 旧格式（异或值）：兼容校验一次，成功就顺手升级成 PBKDF2
+            if (!PasswordHash::ConstantTimeStringEqual(
+                PasswordHash::LegacyXor(pwd), origin_pwd)) {
+                return false;
+            }
+            std::string upgraded = PasswordHash::HashPassword(pwd);
+            if (!upgraded.empty()) {
+                try {
+                    std::unique_ptr<sql::PreparedStatement> up(
+                        con->_con->prepareStatement("UPDATE user SET pwd = ? WHERE email = ?"));
+                    up->setString(1, upgraded);
+                    up->setString(2, email);
+                    up->executeUpdate();
+                    std::cout << "[migrate] legacy password upgraded: " << email << std::endl;
+                }
+                catch (sql::SQLException& e) {
+                    std::cerr << "upgrade pwd failed: " << e.what() << std::endl;
+                }
+            }
+        }
+
+        userInfo.name = row_name;
+        userInfo.email = row_email;
+        userInfo.uid = row_uid;
         return true;
     }
     catch (sql::SQLException& e) {

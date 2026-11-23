@@ -3,7 +3,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>E:\cppsoft\redis\deps\hiredis;E:\cppsoft\boost_1_83_0;E:\cppsoft\libjson\include;E:\cppsoft\mysql_connector\include;$(IncludePath)</IncludePath>
+    <IncludePath>E:\cppsoft\grpc\third_party\boringssl-with-bazel\src\include;E:\cppsoft\redis\deps\hiredis;E:\cppsoft\boost_1_83_0;E:\cppsoft\libjson\include;E:\cppsoft\mysql_connector\include;$(IncludePath)</IncludePath>
     <LibraryPath>E:\cppsoft\redis\lib;E:\cppsoft\libjson\lib;E:\cppsoft\boost_1_83_0\stage\lib;E:\cppsoft\mysql_connector\lib64\vs14;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>

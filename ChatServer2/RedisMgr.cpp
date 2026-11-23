@@ -358,3 +358,109 @@ bool RedisMgr::ExistsKey(const std::string &key)
 }
 
 
+
+
+bool RedisMgr::SetEx(const std::string &key, const std::string &value, int seconds)
+{
+	auto connect = _con_pool->getConnection();
+	if (connect == nullptr) {
+		return false;
+	}
+
+	auto reply = (redisReply*)redisCommand(connect, "SETEX %s %d %s", key.c_str(), seconds, value.c_str());
+	if (reply == nullptr) {
+		std::cout << "Execut command [ SETEX " << key << " ] failure ! " << std::endl;
+		_con_pool->returnConnection(connect);
+		return false;
+	}
+
+	if (!(reply->type == REDIS_REPLY_STATUS &&
+		(strcmp(reply->str, "OK") == 0 || strcmp(reply->str, "ok") == 0))) {
+		std::cout << "Execut command [ SETEX " << key << " ] failure ! " << std::endl;
+		freeReplyObject(reply);
+		_con_pool->returnConnection(connect);
+		return false;
+	}
+
+	freeReplyObject(reply);
+	std::cout << "Execut command [ SETEX " << key << " " << seconds << " ] success ! " << std::endl;
+	_con_pool->returnConnection(connect);
+	return true;
+}
+
+bool RedisMgr::CompareAndDelete(const std::string &key, const std::string &expected)
+{
+	auto connect = _con_pool->getConnection();
+	if (connect == nullptr) {
+		return false;
+	}
+
+	// Atomically delete the key only when it still points at this node.
+	const char script[] =
+		"if redis.call('GET', KEYS[1]) == ARGV[1] then "
+		"return redis.call('DEL', KEYS[1]) else return 0 end";
+	const char* argv[5] = { "EVAL", script, "1", key.c_str(), expected.c_str() };
+	size_t argvlen[5] = { 4, sizeof(script) - 1, 1, key.size(), expected.size() };
+	auto reply = (redisReply*)redisCommandArgv(connect, 5, argv, argvlen);
+	if (reply == nullptr) {
+		std::cout << "Execut command [ CompareAndDelete " << key << " ] failure ! " << std::endl;
+		_con_pool->returnConnection(connect);
+		return false;
+	}
+
+	if (reply->type != REDIS_REPLY_INTEGER) {
+		std::cout << "Execut command [ CompareAndDelete " << key << " ] failure ! " << std::endl;
+		freeReplyObject(reply);
+		_con_pool->returnConnection(connect);
+		return false;
+	}
+
+	bool deleted = (reply->integer == 1);
+	freeReplyObject(reply);
+	std::cout << "Execut command [ CompareAndDelete " << key << " ] "
+		<< (deleted ? "success" : "skipped") << std::endl;
+	_con_pool->returnConnection(connect);
+	return deleted;
+}
+
+
+bool RedisMgr::RefreshEx(const std::string &key, const std::string &expected, int seconds)
+{
+	auto connect = _con_pool->getConnection();
+	if (connect == nullptr) {
+		return false;
+	}
+
+	// Refresh the TTL only when the key still belongs to this node; create it
+	// if it already expired while this session is still alive.
+	const char script[] =
+		"local v = redis.call('GET', KEYS[1]) "
+		"if v == false then "
+		"redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2]) return 1 "
+		"elseif v == ARGV[1] then "
+		"redis.call('EXPIRE', KEYS[1], ARGV[2]) return 1 "
+		"else return 0 end";
+	std::string seconds_str = std::to_string(seconds);
+	const char* argv[6] = { "EVAL", script, "1", key.c_str(), expected.c_str(), seconds_str.c_str() };
+	size_t argvlen[6] = { 4, sizeof(script) - 1, 1, key.size(), expected.size(), seconds_str.size() };
+	auto reply = (redisReply*)redisCommandArgv(connect, 6, argv, argvlen);
+	if (reply == nullptr) {
+		std::cout << "Execut command [ RefreshEx " << key << " ] failure ! " << std::endl;
+		_con_pool->returnConnection(connect);
+		return false;
+	}
+
+	if (reply->type != REDIS_REPLY_INTEGER) {
+		std::cout << "Execut command [ RefreshEx " << key << " ] failure ! " << std::endl;
+		freeReplyObject(reply);
+		_con_pool->returnConnection(connect);
+		return false;
+	}
+
+	bool refreshed = (reply->integer == 1);
+	freeReplyObject(reply);
+	std::cout << "Execut command [ RefreshEx " << key << " ] "
+		<< (refreshed ? "success" : "skipped") << std::endl;
+	_con_pool->returnConnection(connect);
+	return refreshed;
+}

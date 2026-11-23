@@ -17,7 +17,7 @@
 #include <QDir>
 #include <QSettings>
 
-//声明了一个全局的“函数变量”，它的作用是“重新刷新某个界面的样式”
+//声明一个全局的“函数变量”，作用是“重新刷新某个界面的样式”
 extern std::function<void(QWidget*)> repolish;
 
 extern std::function<QString(QString)> xorString;
@@ -42,6 +42,12 @@ enum ReqId{
     ID_TEXT_CHAT_MSG_REQ  = 1017,  //文本聊天信息请求
     ID_TEXT_CHAT_MSG_RSP  = 1018,  //文本聊天信息回复
     ID_NOTIFY_TEXT_CHAT_MSG_REQ = 1019, //通知用户文本聊天信息
+    ID_HEARTBEAT_REQ = 1020,       //应用层心跳请求
+    ID_HEARTBEAT_RSP = 1021,       //应用层心跳回复
+    ID_TEXT_CHAT_MSG_DELIVERED_REQ = 1022,    //收件人 -> 服务端：送达确认
+    ID_NOTIFY_TEXT_CHAT_MSG_DELIVERED = 1023, //服务端 -> 发送方：已送达
+    ID_TEXT_CHAT_MSG_READ_REQ = 1024,         //收件人 -> 服务端：已读确认
+    ID_NOTIFY_TEXT_CHAT_MSG_READ = 1025,      //服务端 -> 发送方：已读
 };
 
 enum Modules{

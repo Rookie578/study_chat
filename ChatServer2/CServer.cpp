@@ -35,15 +35,18 @@ void CServer::StartAccept() {
 }
 
 void CServer::ClearSession(std::string session_id) {
-	if (_sessions.find(session_id) != _sessions.end()) {
-		//移除用户和session的关联
-		UserMgr::GetInstance()->RmvUserSession(_sessions[session_id]->GetUserId());
-	}
-	
-	
+	std::shared_ptr<CSession> session;
 	{
 		lock_guard<mutex> lock(_mutex);
-		_sessions.erase(session_id);
+		auto iter = _sessions.find(session_id);
+		if (iter == _sessions.end()) {
+			return;
+		}
+		session = iter->second;
+		_sessions.erase(iter);
 	}
-	
+
+	if (session) {
+		UserMgr::GetInstance()->RmvUserSession(session->GetUserId(), session);
+	}
 }

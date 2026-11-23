@@ -228,6 +228,31 @@ void UserMgr::AppendFriendChatMsg(int friend_id, std::vector<std::shared_ptr<Tex
     find_iter.value()->AppendChatMsgs(msgs);
 }
 
+void UserMgr::UpdateChatMsgStatus(int friend_id, const QStringList& msgids, int status, bool all)
+{
+    auto find_iter = _friend_map.find(friend_id);
+    if (find_iter == _friend_map.end()) {
+        return;
+    }
+
+    auto self = GetUserInfo();
+    for (auto& msg : find_iter.value()->_chat_msgs) {
+        // 只更新“我发出的”消息，收到的消息没有状态
+        if (self && msg->_from_uid != self->_uid) {
+            continue;
+        }
+        if (!all && !msgids.contains(msg->_msg_id)) {
+            continue;
+        }
+        if (status == 4) {
+            msg->_status = 4;
+        }
+        else if (msg->_status < status) {
+            msg->_status = status;
+        }
+    }
+}
+
 UserMgr::UserMgr():_user_info(nullptr), _chat_loaded(0),_contact_loaded(0)
 {
 
